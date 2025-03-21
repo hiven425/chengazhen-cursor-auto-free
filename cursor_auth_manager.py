@@ -2,50 +2,20 @@ import sqlite3
 import os
 import sys
 from config import Config
+from cursor_path_utils import get_cursor_path
 
 
 class CursorAuthManager:
     """Cursor认证信息管理器"""
 
     def __init__(self, custom_path=None):
-        # 使用自定义路径或从配置中获取
+        # 获取自定义路径
         if custom_path is None:
             config = Config()
             custom_path = config.get_cursor_install_path()
-        
-        # 判断操作系统
-        if sys.platform == "win32":  # Windows
-            if custom_path:
-                self.db_path = os.path.join(
-                    custom_path, "User", "globalStorage", "state.vscdb"
-                )
-            else:
-                appdata = os.getenv("APPDATA")
-                if appdata is None:
-                    raise EnvironmentError("APPDATA 环境变量未设置")
-                self.db_path = os.path.join(
-                    appdata, "Cursor", "User", "globalStorage", "state.vscdb"
-                )
-        elif sys.platform == "darwin": # macOS
-            if custom_path:
-                self.db_path = os.path.join(
-                    custom_path, "User", "globalStorage", "state.vscdb"
-                )
-            else:
-                self.db_path = os.path.abspath(os.path.expanduser(
-                    "~/Library/Application Support/Cursor/User/globalStorage/state.vscdb"
-                ))
-        elif sys.platform == "linux" : # Linux 和其他类Unix系统
-            if custom_path:
-                self.db_path = os.path.join(
-                    custom_path, "User", "globalStorage", "state.vscdb"
-                )
-            else:
-                self.db_path = os.path.abspath(os.path.expanduser(
-                    "~/.config/Cursor/User/globalStorage/state.vscdb"
-                ))
-        else:
-            raise NotImplementedError(f"不支持的操作系统: {sys.platform}")
+            
+        # 获取数据库路径
+        self.db_path = get_cursor_path('state_db', custom_path)
         
         print(f"Cursor认证数据库路径: {self.db_path}")
 

@@ -10,6 +10,7 @@ import shutil
 import sys
 import tempfile
 from typing import Tuple
+from config import Config
 
 
 # 配置日志
@@ -32,6 +33,7 @@ logger = setup_logging()
 def get_cursor_paths() -> Tuple[str, str]:
     """
     根据不同操作系统获取 Cursor 相关路径
+    优先使用环境变量中配置的路径，如果未配置则使用默认路径
 
     Returns:
         Tuple[str, str]: (package.json路径, main.js路径)的元组
@@ -40,7 +42,39 @@ def get_cursor_paths() -> Tuple[str, str]:
         OSError: 当找不到有效路径或系统不支持时抛出
     """
     system = platform.system()
-
+    
+    # 从配置中获取自定义路径
+    config = Config()
+    custom_path = config.get_cursor_install_path()
+    
+    # 如果自定义路径存在，使用该路径
+    if custom_path and os.path.exists(custom_path):
+        logger.info(f"使用自定义安装路径: {custom_path}")
+        if system == "Windows":
+            # Windows自定义路径应该指向Cursor的resources/app目录
+            app_path = os.path.join(custom_path, "resources", "app")
+            if not os.path.exists(app_path):
+                app_path = custom_path  # 假设用户已提供完整路径
+        elif system == "Darwin":
+            # macOS自定义路径应该指向Cursor.app/Contents/Resources/app
+            if "Resources/app" not in custom_path:
+                app_path = os.path.join(custom_path, "Contents", "Resources", "app")
+            else:
+                app_path = custom_path
+        else:  # Linux
+            app_path = custom_path
+            
+        # 检查路径是否有效
+        pkg_path = os.path.join(app_path, "package.json")
+        main_path = os.path.join(app_path, "out", "main.js")
+        
+        if os.path.exists(pkg_path) and os.path.exists(main_path):
+            logger.info(f"找到Cursor文件: {pkg_path}, {main_path}")
+            return (pkg_path, main_path)
+        else:
+            logger.warning(f"自定义路径无效，回退到默认路径搜索")
+    
+    # 如果没有自定义路径或自定义路径无效，使用默认路径
     paths_map = {
         "Darwin": {
             "base": "/Applications/Cursor.app/Contents/Resources/app",
@@ -73,9 +107,11 @@ def get_cursor_paths() -> Tuple[str, str]:
 
     base_path = paths_map[system]["base"]
     # 判断Windows是否存在这个文件夹,如果不存在,提示需要创建软连接后重试
-    if system  == "Windows":
+    if system == "Windows":
         if not os.path.exists(base_path):
-            logging.info('可能您的Cursor不是默认安装路径,请创建软连接,命令如下:')
+            logging.info('可能您的Cursor不是默认安装路径,请执行以下操作之一:')
+            logging.info('1. 在.env文件中配置CURSOR_INSTALL_PATH指定自定义安装路径')
+            logging.info('2. 创建软连接,命令如下:')
             logging.info('cmd /c mklink /d "C:\\Users\\<username>\\AppData\\Local\\Programs\\Cursor" "默认安装路径"')
             logging.info('例如:')
             logging.info('cmd /c mklink /d "C:\\Users\\<username>\\AppData\\Local\\Programs\\Cursor" "D:\\SoftWare\\cursor"')

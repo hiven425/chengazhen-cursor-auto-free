@@ -28,6 +28,9 @@ class Config:
         self.temp_mail_epin = os.getenv("TEMP_MAIL_EPIN", "").strip()
         self.temp_mail_ext = os.getenv("TEMP_MAIL_EXT", "").strip()
         self.domain = os.getenv("DOMAIN", "").strip()
+        
+        # 自定义Cursor安装路径
+        self.cursor_install_path = os.getenv("CURSOR_INSTALL_PATH", "").strip()
 
         # 如果临时邮箱为null则加载IMAP
         if self.temp_mail == "null":
@@ -62,6 +65,14 @@ class Config:
             "imap_pass": self.imap_pass,
             "imap_dir": self.imap_dir,
         }
+    
+    def get_cursor_install_path(self):
+        """获取自定义的Cursor安装路径
+        
+        Returns:
+            str: 自定义的Cursor安装路径，如果未设置则返回空字符串
+        """
+        return self.cursor_install_path
 
     def get_domain(self):
         return self.domain
